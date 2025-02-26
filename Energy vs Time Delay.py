@@ -164,7 +164,7 @@ def E_kml_har(P_m_har,T_m_har,h_km_har):
 
 num_bs = 5
 num_irs_ele=50
-num_generation = 30 # Number of generations, increased for GA to evolve
+num_generation = 10 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
 population_size = 50 # Population size for GA
 
@@ -1640,7 +1640,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
         "fitness_sums_RS": fitness_sums_RS,
     }
 
-    csv_file_path_pandas = "fitness_summary_Time Delay.csv"
+    csv_file_path_pandas = "fitness_summary Time Delay.csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)

@@ -9,6 +9,8 @@ import multiprocessing
 
 # Load datasets related to Base Stations, UAVs, and Clients
 base = pd.read_csv(r'BS_data.csv')
+p_down1=pd.read_csv(r'p_down.csv')
+p_har1=pd.read_csv(r'p_har.csv')
 uav = pd.read_csv(r'UAV_data.csv')
 people = pd.read_csv(r'people_data.csv')
 IRS=pd.read_csv(r'IRS_data.csv')
@@ -30,9 +32,9 @@ f_km1=pd.read_csv(r'f_km.csv')
 # Constants
 Wl_value = 35.28
 H_value= 20
-P_m_har = base['P_m_har']
+P_m_har = p_har1['0']
 T_m_har = base['T_m_har']
-P_m_down = base['P_m_down']
+P_m_down = p_down1['0']
 f_km=f_km1['0']
 V_lm_vfly = uav['V_lm_vfly']
 V_lm_hfly = uav['V_lm_hfly']
@@ -167,6 +169,7 @@ num_irs_ele=50
 num_generation = 10 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
 population_size = 50 # Population size for GA
+S=50
 
 # Define keys that should be subjected to crossover and mutation (numerical parameters)
 numerical_keys_for_crossover = [
@@ -232,7 +235,7 @@ def GA_IRS(p_max): # Define function to process each p_max value
             P_l_hov_value = P_l_hov(Wl_value, p_l_b, Nr, Ar, Bh)
 
             # Corrected loop range to use valid_indices length
-            for i in range(len(valid_indices)): # Using length of valid_indices
+            for i in range(S): # Using length of valid_indices
                 f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
                 P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
@@ -246,11 +249,6 @@ def GA_IRS(p_max): # Define function to process each p_max value
                 f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
                 f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
-                # Calculate power values
-
-
-                # Calculate time and energy values
-                # Corrected: D_l_hfly / V_lm_hfly
                 E_ml_har_value = P_m_har_value * T_m_har_value
                 h_kml_down_value=h_kml_down(Angle_row,h_l_m_row,h_l_km_row) # Pass Series
                 h_ml_worst_value=h_ml_worst(h_kml_down_value,sigma_km)
@@ -289,7 +287,7 @@ def GA_IRS(p_max): # Define function to process each p_max value
             for j in range(num_generation):
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0, len(valid_indices), 2): # Loop through population with step of 2
+                for x in range(0, S, 2): # Loop through population with step of 2
                     if x + 1 >= len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
@@ -394,7 +392,7 @@ def GA_IRS(p_max): # Define function to process each p_max value
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:population_size]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -543,7 +541,7 @@ def GA_IRS_RA(p_max): # Define function to process each p_max value
             P_l_hov_value = P_l_hov(Wl_value, p_l_b, Nr, Ar, Bh)
 
             # Corrected loop range to use valid_indices length
-            for i in range(len(valid_indices)): # Using length of valid_indices
+            for i in range(S): # Using length of valid_indices
                 f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
                 P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
@@ -557,11 +555,6 @@ def GA_IRS_RA(p_max): # Define function to process each p_max value
                 f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
                 f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
-                # Calculate power values
-
-
-                # Calculate time and energy values
-                # Corrected: D_l_hfly / V_lm_hfly
                 E_ml_har_value = P_m_har_value * T_m_har_value
                 h_kml_down_value=h_kml_down(Angle_row,h_l_m_row,h_l_km_row) # Pass Series
                 h_ml_worst_value=h_ml_worst(h_kml_down_value,sigma_km)
@@ -600,7 +593,7 @@ def GA_IRS_RA(p_max): # Define function to process each p_max value
             for j in range(num_generation):
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0, len(valid_indices), 2): # Loop through population with step of 2
+                for x in range(0,S, 2): # Loop through population with step of 2
                     if x + 1 >= len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
@@ -704,7 +697,7 @@ def GA_IRS_RA(p_max): # Define function to process each p_max value
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:population_size]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -918,7 +911,6 @@ def HC_IRS(p_max):
                     for key in numerical_keys_for_crossover:
                         # Apply mutation only to numerical keys
                         if key in ['Angle1_row','Angle_row','Angle2_row']: # Handle Angle Series
-                            # --- REMOVED: neighbor_solution_data[key] = pd.Series(index=Angle_df.columns, dtype='float64') --- # PROBLEM LINE REMOVED
                             for col in Angle_df.columns: # Iterate through each column (angle direction)
                                 neighbor_solution_data[key][col] += random.normal(loc=0, scale=1, size=(1))[0] # Perturb EXISTING value
                                 if neighbor_solution_data[key][col] < 0: # Check if the RESULTING angle is negative
@@ -1061,19 +1053,36 @@ def HC_IRS(p_max):
             unassigned_uavs.remove(best_combination_overall['uav_index'])
 
     # # Print and Plotting
-    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) using Hill Climbing ---")
+    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) ---")
     best_pair_for_plot = None
     min_fitness_for_plot = float('inf')
 
-    sum_fitness_current_p_max = 0 # Sum of best fitness for current p_max
     for assignment in best_assignments:
+        print(f"\nBest Assignment for BS {assignment['bs_index']}:")
+        print(f" UAV Index: {assignment['uav_index']}")
         best_ind = assignment['best_individual']
-        # Changed line: Access last generation fitness and sum it
-        last_generation_fitness = assignment['generation_fitness'][-1]
-        sum_fitness_current_p_max += last_generation_fitness
+        print(f" Best Individual:")
+        print(f"  Generation: {best_ind['generation']}, Type: {best_ind['type']}")
+        print(f"  Fitness: {best_ind['fitness']:.4f}") # Print current best fitness only
+        unique_indices_to_print = assignment['unique_row_indices'] # Retrieve unique_row_indices
+        for key, value in best_ind['data'].items():
+            if isinstance(value, pd.Series):
+                print(f"  {key}: Series: \n{value.iloc[unique_indices_to_print]}") # Print sliced Series
+            elif isinstance(value, list): # Handle list type values explicitly
+                print(f"  {key}: {value}") # print list directly without formatting
+            else:
+                print(f"  {key}: {value:.4f}") # Format scalar values
 
-    return sum_fitness_current_p_max # Return sum of fitness for this p_max
+        print("-" * 20)
+        # Changed line: Use the last generation's fitness
+        last_generation_fitness = assignment['generation_fitness'][-1] # Access the last element
+        sum_fitness_current_p_max += last_generation_fitness # Sum last generation fitness values
 
+        if assignment['best_individual']['fitness'] < min_fitness_for_plot: # keep track of overall best fitness for plotting purposes - not related to sum_fitness_current_p_max
+            min_fitness_for_plot = assignment['best_individual']['fitness']
+            best_pair_for_plot = assignment
+
+    return sum_fitness_current_p_max
 
 
 fitness_sums_HC_IRS_RA = [] # Store sum of fitness values for each p_max
@@ -1194,7 +1203,6 @@ def HC_IRS_RA(p_max):
                 for i in range(4):
                     for key in numerical_keys_for_crossover:
                         if key in ['Angle1_row','Angle_row','Angle2_row']: # Ensure angles are also Series
-                            # Select random angles for Angle Series instead of perturbing
                             neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
                         else:
                             neighbor_solution_data[key] += random.normal(loc=0, scale=1, size=(1))[0] # Perturb other numerical values
@@ -1334,19 +1342,36 @@ def HC_IRS_RA(p_max):
             unassigned_uavs.remove(best_combination_overall['uav_index'])
 
     # # Print and Plotting
-    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) using Hill Climbing ---")
+    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) ---")
     best_pair_for_plot = None
     min_fitness_for_plot = float('inf')
 
-    sum_fitness_current_p_max = 0 # Sum of best fitness for current p_max
     for assignment in best_assignments:
+        print(f"\nBest Assignment for BS {assignment['bs_index']}:")
+        print(f" UAV Index: {assignment['uav_index']}")
         best_ind = assignment['best_individual']
-        # Changed line: Access last generation fitness and sum it
-        last_generation_fitness = assignment['generation_fitness'][-1]
-        sum_fitness_current_p_max += last_generation_fitness
+        print(f" Best Individual:")
+        print(f"  Generation: {best_ind['generation']}, Type: {best_ind['type']}")
+        print(f"  Fitness: {best_ind['fitness']:.4f}") # Print current best fitness only
+        unique_indices_to_print = assignment['unique_row_indices'] # Retrieve unique_row_indices
+        for key, value in best_ind['data'].items():
+            if isinstance(value, pd.Series):
+                print(f"  {key}: Series: \n{value.iloc[unique_indices_to_print]}") # Print sliced Series
+            elif isinstance(value, list): # Handle list type values explicitly
+                print(f"  {key}: {value}") # print list directly without formatting
+            else:
+                print(f"  {key}: {value:.4f}") # Format scalar values
 
-    return sum_fitness_current_p_max # Return sum of fitness for this p_max
+        print("-" * 20)
+        # Changed line: Use the last generation's fitness
+        last_generation_fitness = assignment['generation_fitness'][-1] # Access the last element
+        sum_fitness_current_p_max += last_generation_fitness # Sum last generation fitness values
 
+        if assignment['best_individual']['fitness'] < min_fitness_for_plot: # keep track of overall best fitness for plotting purposes - not related to sum_fitness_current_p_max
+            min_fitness_for_plot = assignment['best_individual']['fitness']
+            best_pair_for_plot = assignment
+
+    return sum_fitness_current_p_max
 
 
 fitness_sums_RS = [] # Store sum of fitness values for each p_max
@@ -1394,19 +1419,18 @@ def RS(p_max):
 
             # Initialize initial solution for Hill Climbing - using first from 'population initialization' of GA
             initial_solution_data = {}
-            i=0 # Using first index for initialization
-            f_km_value = f_km_bs[i] # Use BS-specific f_km
-            P_km_up_value = P_km_up_bs[i] # Use BS-specific P_km_up
+            f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
+            P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
-            Angle_row = Angle_df.iloc[i, :] # Use BS-specific Angle_df
+            Angle_row = Angle_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_df
             h_l_m_row = h_l_m_df.iloc[k, :] # Use BS-specific h_l_m_df
-            h_l_km_row = h_l_km_df_bs.iloc[i, :] # Use BS-specific h_l_km_df
-            Angle1_row = Angle_UP_df.iloc[i, :] # Use BS-specific Angle_UP_df
+            h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific h_l_km_df
+            Angle1_row = Angle_UP_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_UP_df
             g_l_m_row = g_l_m_df.iloc[k, :] # Use BS-specific g_l_m_df
-            g_l_km_row = g_l_km_df_bs.iloc[i, :] # Use BS-specific g_l_km_df
-            Angle2_row = Angle_har_df.iloc[i, :] # Use BS-specific Angle_har_df
+            g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific g_l_km_df
+            Angle2_row = Angle_har_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_har_df
             f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
-            f_l_km_row = f_l_km_df_bs.iloc[i, :] # Use BS-specific f_l_km_df
+            f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
 
 
@@ -1532,11 +1556,11 @@ def RS(p_max):
                 for key in numerical_keys_for_crossover: # Perturb each key for the current neighbor
                     if key in ['Angle1_row','Angle_row','Angle2_row']:
                         neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
-                    elif key in ['P_m_down_value', 'P_m_har_value', 'T_m_har_value','f_km_value']:
+                    elif key in [ 'T_m_har_value','f_km_value']:
                         neighbor_solution_data[key] = random.uniform(0, 1) # Corrected: Assign directly to key
                     elif key in ['V_lm_vfly_value', 'V_lm_hfly_value']:
                         neighbor_solution_data[key] = random.uniform(0, 100) # Corrected: Assign directly to key
-                    elif key in ['P_km_up_value']:
+                    elif key in ['P_km_up_value','P_m_down_value', 'P_m_har_value']:
                         neighbor_solution_data[key] = random.uniform(0, 10) # Corrected: Assign directly to key
                     else:
                         neighbor_solution_data[key] = neighbor_solution_data[key] + np.random.normal(loc=0, scale=1, size=(1))[0] # Corrected line
@@ -1607,22 +1631,40 @@ def RS(p_max):
             unassigned_uavs.remove(best_combination_overall['uav_index'])
 
     # # Print and Plotting
-    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) using Random Search ---") # corrected print statement
+    print(f"\n--- Best Unique UAV Assignments (Auction Based Method) ---")
     best_pair_for_plot = None
     min_fitness_for_plot = float('inf')
 
-    sum_fitness_current_p_max = 0 # Sum of best fitness for current p_max
     for assignment in best_assignments:
+        print(f"\nBest Assignment for BS {assignment['bs_index']}:")
+        print(f" UAV Index: {assignment['uav_index']}")
         best_ind = assignment['best_individual']
-        # Changed line: Access last generation fitness and sum it
-        last_generation_fitness = assignment['generation_fitness'][-1]
-        sum_fitness_current_p_max += last_generation_fitness # corrected to sum last generation fitness
+        print(f" Best Individual:")
+        print(f"  Generation: {best_ind['generation']}, Type: {best_ind['type']}")
+        print(f"  Fitness: {best_ind['fitness']:.4f}") # Print current best fitness only
+        unique_indices_to_print = assignment['unique_row_indices'] # Retrieve unique_row_indices
+        for key, value in best_ind['data'].items():
+            if isinstance(value, pd.Series):
+                print(f"  {key}: Series: \n{value.iloc[unique_indices_to_print]}") # Print sliced Series
+            elif isinstance(value, list): # Handle list type values explicitly
+                print(f"  {key}: {value}") # print list directly without formatting
+            else:
+                print(f"  {key}: {value:.4f}") # Format scalar values
 
-    return sum_fitness_current_p_max # Return sum of fitness for this p_max.in this code i want sum_fitness_current_p_max this variable return the sum of fitness of each unique best pair of last generation for each D_m_current .update the code to do this
+        print("-" * 20)
+        # Changed line: Use the last generation's fitness
+        last_generation_fitness = assignment['generation_fitness'][-1] # Access the last element
+        sum_fitness_current_p_max += last_generation_fitness # Sum last generation fitness values
+
+        if assignment['best_individual']['fitness'] < min_fitness_for_plot: # keep track of overall best fitness for plotting purposes - not related to sum_fitness_current_p_max
+            min_fitness_for_plot = assignment['best_individual']['fitness']
+            best_pair_for_plot = assignment
+
+    return sum_fitness_current_p_max
 
 
 if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Windows
-    p_max_values = np.arange(1, 11,1) # P_max values from 1 to 11
+    p_max_values = np.arange(1, 11, 1) # P_max values from 1 to 11
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         fitness_sums_GA_IRS = pool.map(GA_IRS, p_max_values)
         fitness_sums_GA_IRS_RA = pool.map(GA_IRS_RA, p_max_values)
@@ -1632,21 +1674,18 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
         
 
     data_dict = {
-        "Generation": list(range(1, len(fitness_sums_GA_IRS) + 1)) if fitness_sums_GA_IRS else [], # Assuming generation number starts from 1
-        "fitness_sums_HC_IRS_RA": fitness_sums_HC_IRS_RA,
-        "fitness_sums_HC_IRS": fitness_sums_HC_IRS,
-        "fitness_sums_GA_IRS_RA": fitness_sums_GA_IRS_RA,
-        "fitness_sums_GA_IRS": fitness_sums_GA_IRS,
-        "fitness_sums_RS": fitness_sums_RS,
+        "p_max_value": p_max_values, 
+        "Fitness_Sum_HC_IRS_RA": fitness_sums_HC_IRS_RA,
+        "Fitness_Sum_HC_IRS": fitness_sums_HC_IRS,
+        "Fitness_Sum_GA_IRS_RA": fitness_sums_GA_IRS_RA,
+        "Fitness_Sum_GA_IRS": fitness_sums_GA_IRS,
+        "Fitness_Sum_RS": fitness_sums_RS,
     }
 
     csv_file_path_pandas = "fitness_summary_Power.csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)
-
-    # Save the DataFrame to a CSV file
-    df.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
 
 
     plt.figure(figsize=(12, 7)) 
@@ -1662,3 +1701,28 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
     plt.legend()
     plt.savefig("Energy vs Power.pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
     plt.show()
+
+    min_energy_GA_IRS = min(fitness_sums_GA_IRS)
+    min_energy_GA_IRS_RA = min(fitness_sums_GA_IRS_RA)
+    min_energy_HC_IRS = min(fitness_sums_HC_IRS)
+    min_energy_HC_IRS_RA = min(fitness_sums_HC_IRS_RA)
+    min_energy_RS = min(fitness_sums_RS)
+
+    # Calculate percentage improvement over Random Search
+    improvement_GA_IRS_vs_GA_IRS_RA = ((min_energy_GA_IRS_RA - min_energy_GA_IRS) / min_energy_GA_IRS_RA) * 100
+    improvement_GA_IRS_vs_HC_IRS  = ((min_energy_HC_IRS - min_energy_GA_IRS) / min_energy_HC_IRS) * 100
+    improvement_GA_IRS_vs_HC_IRS_RA  = ((min_energy_HC_IRS_RA - min_energy_GA_IRS) / min_energy_HC_IRS_RA) * 100
+    improvement_GA_IRS_vs_RS  = ((min_energy_RS - min_energy_GA_IRS) / min_energy_RS) * 100
+    
+    
+    new_row = {"p_max_value":"Fitness Improvement(%)", "Fitness_Sum_HC_IRS_RA":improvement_GA_IRS_vs_HC_IRS_RA, "Fitness_Sum_HC_IRS":improvement_GA_IRS_vs_HC_IRS, "Fitness_Sum_GA_IRS_RA":improvement_GA_IRS_vs_GA_IRS_RA, "Fitness_Sum_GA_IRS":0, "Fitness_Sum_RS":improvement_GA_IRS_vs_RS}
+    new_row_df = pd.DataFrame([new_row])
+    df2 = pd.concat([df, new_row_df], ignore_index=True)
+    # Save the DataFrame to a CSV file
+    df2.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
+
+    #Print the calculated improvement values with descriptive labels
+    print(f"Improvement of GA_IRS vs GA_IRS_RA: {improvement_GA_IRS_vs_GA_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS: {improvement_GA_IRS_vs_HC_IRS:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS_RA: {improvement_GA_IRS_vs_HC_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs RS: {improvement_GA_IRS_vs_RS:.2f}%")

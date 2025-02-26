@@ -13,6 +13,8 @@ uav = pd.read_csv(r'UAV_data.csv')
 people = pd.read_csv(r'people_data.csv')
 IRS=pd.read_csv(r'IRS_data.csv')
 p_km_UP=pd.read_csv(r'P_km_up.csv')
+p_har1=pd.read_csv(r'p_har.csv')
+p_down1=pd.read_csv(r'p_down.csv')
 
 Angle_df=pd.read_csv(r'Angle.csv') # number of IRS is 500 store in each column
 h_l_km_df=pd.read_csv(r'h_l_km.csv') # number of IRS is 500 store in each column
@@ -30,9 +32,9 @@ f_km1=pd.read_csv(r'f_km.csv')
 # Constants
 Wl_value = 35.28
 H_value= 20
-P_m_har = base['P_m_har']
+P_m_har = p_har1['0']
 T_m_har = base['T_m_har']
-P_m_down = base['P_m_down']
+P_m_down = p_down1['0']
 f_km=f_km1['0']
 V_lm_vfly = uav['V_lm_vfly']
 V_lm_hfly = uav['V_lm_hfly']
@@ -61,7 +63,6 @@ eta=10
 kappa=0.5
 num_population=50
 Bh = (1 - 2.2558 * pow(10, -5) *H_value)**4.2577
-# Bh = max(1, Bh)
 p_l_b = (delta / 8) * Bh * Ar * s * pow(V_tip, 3)
 
 # Determine the maximum possible rows based on the smallest dataframe size
@@ -162,23 +163,21 @@ def E_kml_up(P_km_up,T_km_up):
 def E_kml_har(P_m_har,T_m_har,h_km_har):
     return kappa*P_m_har*T_m_har*h_km_har
 
+num_bs = 5
+num_irs_ele=50
+num_generation = 30 
+num_uav_irs = 8
+population_size = 25 
+S=50
 
+# Define keys that should be subjected to perturbation (numerical parameters)
+numerical_keys_for_crossover = [
+    'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
+    'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
+    'P_km_up_value','Angle1_row','Angle_row','Angle2_row',
+]
 
 def hc_irs_ra(hc_irs_ra_queue):
-    num_bs = 5
-    num_irs_ele=50
-    num_generation = 30 # Number of iterations for Hill Climbing
-    num_uav_irs = 8
-    population_size = 50 # Initial population size (used for initial solution in HC)
-
-    # Define keys that should be subjected to perturbation (numerical parameters)
-    numerical_keys_for_hc = [
-        'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
-        'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
-        'P_km_up_value','Angle1_row','Angle_row','Angle2_row',
-    ]
-
-
     fitness_sums_HC = [] # Store sum of fitness values for each p_max
 
     all_best_combinations = []
@@ -194,15 +193,15 @@ def hc_irs_ra(hc_irs_ra_queue):
         # Select unique row indices for the current BS
         index_list = list(range(num_rows_data_files)) # Create a list of all indices
         random.shuffle(index_list)
-        unique_row_indices = index_list[:population_size] # use population size to pick initial indices
+        unique_row_indices = index_list[:num_irs_ele] # use population size to pick initial indices
+
+        # unique_row_indices = range(0,50) # Use range to generate indices of constant index
         # Create dataframes with uniquely selected rows for the current BS
-        # unique_row_indices = range(0,50)
         h_l_km_df_bs = h_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         g_l_km_df_bs = g_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         f_l_km_df_bs = f_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
-        f_km_bs = f_km[unique_row_indices].reset_index(drop=True)
-        # Corrected line: Ensure indices are within bounds of P_km_up
-        valid_indices = [i for i in unique_row_indices if i < len(P_km_up)]
+        f_km_bs = f_km[unique_row_indices[0:population_size]].reset_index(drop=True)
+        valid_indices = [i for i in unique_row_indices[0:population_size] if i < len(P_km_up)]
         P_km_up_bs = P_km_up.iloc[valid_indices].reset_index(drop=True)
 
 
@@ -289,9 +288,8 @@ def hc_irs_ra(hc_irs_ra_queue):
                 neighbor_solution_data = current_solution['data'].copy()
 
                 for i in range(4):
-                    for key in numerical_keys_for_hc:
+                    for key in numerical_keys_for_crossover:
                         if key in ['Angle1_row','Angle_row','Angle2_row']: # Ensure angles are also Series
-                            # Select random angles for Angle Series instead of perturbing
                             neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
                         else:
                             neighbor_solution_data[key] += random.normal(loc=0, scale=1, size=(1))[0] # Perturb other numerical values
@@ -505,19 +503,6 @@ def hc_irs_ra(hc_irs_ra_queue):
 
 
 def hc_irs(hc_irs_queue):
-    num_bs = 5
-    num_irs_ele=50
-    num_generation = 30 # Number of iterations for Hill Climbing
-    num_uav_irs = 8
-    population_size = 50 # Initial population size (used for initial solution in HC)
-
-    # Define keys that should be subjected to perturbation (numerical parameters)
-    numerical_keys_for_hc = [
-        'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
-        'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
-        'P_km_up_value','Angle1_row','Angle_row','Angle2_row',
-    ]
-
 
     fitness_sums_HC = [] # Store sum of fitness values for each p_max
 
@@ -534,15 +519,15 @@ def hc_irs(hc_irs_queue):
         # Select unique row indices for the current BS
         index_list = list(range(num_rows_data_files)) # Create a list of all indices
         random.shuffle(index_list)
-        unique_row_indices = index_list[:population_size] # use population size to pick initial indices
+        unique_row_indices = index_list[:num_irs_ele] # use population size to pick initial indices
         # Create dataframes with uniquely selected rows for the current BS
         # unique_row_indices = range(0,50)
         h_l_km_df_bs = h_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         g_l_km_df_bs = g_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         f_l_km_df_bs = f_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
-        f_km_bs = f_km[unique_row_indices].reset_index(drop=True)
+        f_km_bs = f_km[unique_row_indices[0:population_size]].reset_index(drop=True)
         # Corrected line: Ensure indices are within bounds of P_km_up
-        valid_indices = [i for i in unique_row_indices if i < len(P_km_up)]
+        valid_indices = [i for i in unique_row_indices[0:population_size] if i < len(P_km_up)]
         P_km_up_bs = P_km_up.iloc[valid_indices].reset_index(drop=True)
 
 
@@ -629,7 +614,7 @@ def hc_irs(hc_irs_queue):
                 neighbor_solution_data = current_solution['data'].copy()
 
                 for i in range(4): # You can keep this loop if it's intended for repeated perturbations per generation
-                    for key in numerical_keys_for_hc:
+                    for key in numerical_keys_for_crossover:
                         # Apply mutation only to numerical keys
                         if key in ['Angle1_row','Angle_row','Angle2_row']: # Handle Angle Series
                             for col in Angle_df.columns: # Iterate through each column (angle direction)
@@ -845,21 +830,7 @@ def hc_irs(hc_irs_queue):
 
     hc_irs_queue.put(sum_fitness_per_generation_HA)
 
-
 def irs_ra(irs_ra_queue):
-    num_bs = 5
-    num_irs_ele=50
-    num_generation = 30 # Number of generations, increased for GA to evolve
-    num_uav_irs = 8
-    population_size = 50 # Population size for GA
-
-    # Define keys that should be subjected to crossover and mutation (numerical parameters)
-    numerical_keys_for_crossover = [
-        'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
-        'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
-        'P_km_up_value','Angle1_row','Angle_row',
-        'Angle2_row',
-    ]
 
     fitness_sums_GA= [] # Store sum of fitness values for each p_max
 
@@ -877,19 +848,17 @@ def irs_ra(irs_ra_queue):
 
         index_list = list(range(num_rows_data_files)) # Create a list of all indices
         random.shuffle(index_list)
-        unique_row_indices = index_list[:population_size]
+        unique_row_indices = index_list[:num_irs_ele]
         # Create dataframes with uniquely selected rows for the current BS
         # unique_row_indices = range(0,50)
         h_l_km_df_bs = h_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         g_l_km_df_bs = g_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         f_l_km_df_bs = f_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
-        f_km_bs = f_km[unique_row_indices].reset_index(drop=True)
-        # Corrected line: Ensure indices are within bounds of P_km_up
-        valid_indices = [i for i in unique_row_indices if i < len(P_km_up)]
+        f_km_bs = f_km[unique_row_indices[0:population_size]].reset_index(drop=True)
+
+        valid_indices = [i for i in unique_row_indices[0:population_size] if i < len(P_km_up)]
         P_km_up_bs = P_km_up.iloc[valid_indices].reset_index(drop=True)
-
         E_ml_har_value = P_m_har_value * T_m_har_value
-
 
         for k in range(num_uav_irs):
             best_fitness = float('inf')
@@ -915,19 +884,19 @@ def irs_ra(irs_ra_queue):
 
             # Initialize population
             # Corrected loop range to use valid_indices length
-            for i in range(50): # Using length of valid_indices
-                f_km_value = f_km_bs[random.randint(0,50)] # Use BS-specific f_km
-                P_km_up_value = P_km_up_bs[random.randint(0,50)] # Use BS-specific P_km_up
+            for i in range(S): # Using length of valid_indices
+                f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
+                P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
-                Angle_row = Angle_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_df
+                Angle_row = Angle_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_df
                 h_l_m_row = h_l_m_df.iloc[k, :] # Use BS-specific h_l_m_df
-                h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific h_l_km_df
-                Angle1_row = Angle_UP_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_UP_df
+                h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific h_l_km_df
+                Angle1_row = Angle_UP_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_UP_df
                 g_l_m_row = g_l_m_df.iloc[k, :] # Use BS-specific g_l_m_df
-                g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific g_l_km_df
-                Angle2_row = Angle_har_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_har_df
+                g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific g_l_km_df
+                Angle2_row = Angle_har_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_har_df
                 f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
-                f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific f_l_km_df
+                f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
 
 
@@ -967,11 +936,10 @@ def irs_ra(irs_ra_queue):
 
             generations_data = []
             for j in range(num_generation):
-                # print(num_generation)
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0,50, 2): # Loop through population with step of 2
-                    if x + 1 >=50: # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
+                for x in range(0,S, 2): # Loop through population with step of 2
+                    if x + 1 >=len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
                     ranodmpopulation=[]
@@ -1074,7 +1042,7 @@ def irs_ra(irs_ra_queue):
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:50]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -1208,19 +1176,6 @@ def irs_ra(irs_ra_queue):
 
 
 def irs(irs_queue):
-    num_bs = 5
-    num_irs_ele=50
-    num_generation =30 # Number of generations, increased for GA to evolve
-    num_uav_irs = 8
-    population_size = 50 # Population size for GA
-
-    # Define keys that should be subjected to crossover and mutation (numerical parameters)
-    numerical_keys_for_crossover = [
-        'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
-        'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
-        'P_km_up_value','Angle1_row','Angle_row',
-        'Angle2_row',
-    ]
 
     fitness_sums_GA= [] # Store sum of fitness values for each p_max
 
@@ -1238,15 +1193,15 @@ def irs(irs_queue):
 
         index_list = list(range(num_rows_data_files)) # Create a list of all indices
         random.shuffle(index_list)
-        unique_row_indices = index_list[:population_size]
+        unique_row_indices = index_list[:num_irs_ele]
         # Create dataframes with uniquely selected rows for the current BS
         # unique_row_indices = range(0,50)
         h_l_km_df_bs = h_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         g_l_km_df_bs = g_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         f_l_km_df_bs = f_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
-        f_km_bs = f_km[unique_row_indices].reset_index(drop=True)
+        f_km_bs = f_km[unique_row_indices[0:population_size]].reset_index(drop=True)
         # Corrected line: Ensure indices are within bounds of P_km_up
-        valid_indices = [i for i in unique_row_indices if i < len(P_km_up)]
+        valid_indices = [i for i in unique_row_indices[0:population_size] if i < len(P_km_up)]
         P_km_up_bs = P_km_up.iloc[valid_indices].reset_index(drop=True)
 
         E_ml_har_value = P_m_har_value * T_m_har_value
@@ -1277,19 +1232,19 @@ def irs(irs_queue):
 
             # Initialize population
             # Corrected loop range to use valid_indices length
-            for i in range(50): # Using length of valid_indices
-                f_km_value = f_km_bs[random.randint(0,50)] # Use BS-specific f_km
-                P_km_up_value = P_km_up_bs[random.randint(0,50)] # Use BS-specific P_km_up
+            for i in range(S): # Using length of valid_indices
+                f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
+                P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
-                Angle_row = Angle_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_df
+                Angle_row = Angle_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_df
                 h_l_m_row = h_l_m_df.iloc[k, :] # Use BS-specific h_l_m_df
-                h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific h_l_km_df
-                Angle1_row = Angle_UP_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_UP_df
+                h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific h_l_km_df
+                Angle1_row = Angle_UP_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_UP_df
                 g_l_m_row = g_l_m_df.iloc[k, :] # Use BS-specific g_l_m_df
-                g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific g_l_km_df
-                Angle2_row = Angle_har_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_har_df
+                g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific g_l_km_df
+                Angle2_row = Angle_har_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_har_df
                 f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
-                f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific f_l_km_df
+                f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
 
 
@@ -1332,8 +1287,8 @@ def irs(irs_queue):
                 # print(num_generation)
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0,50, 2): # Loop through population with step of 2
-                    if x + 1 >=50: # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
+                for x in range(0,S, 2): # Loop through population with step of 2
+                    if x + 1 >=len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
                     ranodmpopulation=[]
@@ -1360,7 +1315,6 @@ def irs(irs_queue):
                     if u < P_mutation:
                         for key in numerical_keys_for_crossover: # Apply mutation only to numerical keys
                                 if key in ['Angle1_row','Angle_row','Angle2_row']: # Handle Angle Series
-                                    # child_data[key] = pd.Series(index=Angle_df.columns, dtype='float64') # Initialize empty Series for child
                                     for col in Angle_df.columns: # Iterate through each column (angle direction)
                                         child_data[key][col] += random.normal(loc=0, scale=1, size=(1))[0]
                                 else:
@@ -1437,7 +1391,7 @@ def irs(irs_queue):
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:50]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -1569,19 +1523,6 @@ def irs(irs_queue):
     irs_queue.put(sum_fitness_per_generation_GA)
 
 def rs(rs_queue):
-    num_bs = 5
-    num_irs_ele=50
-    num_generation = 30 # Number of iterations for Hill Climbing
-    num_uav_irs = 8
-    population_size = 50 # Initial population size (used for initial solution in HC)
-
-    # Define keys that should be subjected to perturbation (numerical parameters)
-    numerical_keys_for_hc = [
-        'P_m_down_value', 'P_m_har_value', 'T_m_har_value',
-        'f_km_value', 'V_lm_vfly_value', 'V_lm_hfly_value',
-        'P_km_up_value','Angle1_row','Angle_row','Angle2_row',
-    ]
-
 
     fitness_sums_RA = [] # Store sum of fitness values for each p_max
 
@@ -1590,26 +1531,24 @@ def rs(rs_queue):
 
     # Main Hill Climbing Algorithm Loop
     for l in range(num_bs):
-        print(f"Random Search",num_bs)
         all_best_individuals_bs = []
         P_m_har_value = P_m_har.values[l]
         T_m_har_value = T_m_har.values[l]
         P_m_down_value = P_m_down.values[l]
 
         # # Select unique row indices for the current BS
-        # index_list = list(range(num_rows_data_files)) # Create a list of all indices
-        # random.shuffle(index_list)
-        # unique_row_indices = index_list[:population_size] # use population size to pick initial indices
+        index_list = list(range(num_rows_data_files)) # Create a list of all indices
+        random.shuffle(index_list)
+        unique_row_indices = index_list[:num_irs_ele] # use population size to pick initial indices
         # Create dataframes with uniquely selected rows for the current BS
-        unique_row_indices = range(0,50)
+        # unique_row_indices = range(0,50)
         h_l_km_df_bs = h_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         g_l_km_df_bs = g_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
         f_l_km_df_bs = f_l_km_df.iloc[unique_row_indices, :].reset_index(drop=True)
-        f_km_bs = f_km[unique_row_indices].reset_index(drop=True)
+        f_km_bs = f_km[unique_row_indices[0:population_size]].reset_index(drop=True)
         # Corrected line: Ensure indices are within bounds of P_km_up
-        valid_indices = [i for i in unique_row_indices if i < len(P_km_up)]
+        valid_indices = [i for i in unique_row_indices[0:population_size] if i < len(P_km_up)]
         P_km_up_bs = P_km_up.iloc[valid_indices].reset_index(drop=True)
-
 
         for k in range(num_uav_irs):
             best_fitness = float('inf')
@@ -1626,18 +1565,18 @@ def rs(rs_queue):
             # Initialize initial solution for Hill Climbing - using first from 'population initialization' of GA
             initial_solution_data = {}
             # i=0 # Using first index for initialization
-            f_km_value = f_km_bs[random.randint(0,50)] # Use BS-specific f_km
-            P_km_up_value = P_km_up_bs[random.randint(0,50)] # Use BS-specific P_km_up
+            f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
+            P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
-            Angle_row = Angle_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_df
+            Angle_row = Angle_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_df
             h_l_m_row = h_l_m_df.iloc[k, :] # Use BS-specific h_l_m_df
-            h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific h_l_km_df
-            Angle1_row = Angle_UP_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_UP_df
+            h_l_km_row = h_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific h_l_km_df
+            Angle1_row = Angle_UP_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_UP_df
             g_l_m_row = g_l_m_df.iloc[k, :] # Use BS-specific g_l_m_df
-            g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific g_l_km_df
-            Angle2_row = Angle_har_df.iloc[random.randint(0,50), :] # Use BS-specific Angle_har_df
+            g_l_km_row = g_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific g_l_km_df
+            Angle2_row = Angle_har_df.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific Angle_har_df
             f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
-            f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,50), :] # Use BS-specific f_l_km_df
+            f_l_km_row = f_l_km_df_bs.iloc[random.randint(0,num_irs_ele), :] # Use BS-specific f_l_km_df
 
 
 
@@ -1760,14 +1699,14 @@ def rs(rs_queue):
                 # for i in range(10): # Generate 10 neighbor solutions per generation
                 neighbor_solution_data = current_solution['data'].copy() # Start with current solution for each neighbor
 
-                for key in numerical_keys_for_hc: # Perturb each key for the current neighbor
+                for key in numerical_keys_for_crossover: # Perturb each key for the current neighbor
                     if key in ['Angle1_row','Angle_row','Angle2_row']:
                         neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
-                    elif key in ['P_m_down_value', 'P_m_har_value', 'T_m_har_value','f_km_value']:
+                    elif key in [ 'T_m_har_value','f_km_value']:
                         neighbor_solution_data[key] = random.uniform(0, 1) # Corrected: Assign directly to key
                     elif key in ['V_lm_vfly_value', 'V_lm_hfly_value']:
                         neighbor_solution_data[key] = random.uniform(0, 100) # Corrected: Assign directly to key
-                    elif key in ['P_km_up_value']:
+                    elif key in ['P_km_up_value','P_m_down_value', 'P_m_har_value']:
                         neighbor_solution_data[key] = random.uniform(0, 10) # Corrected: Assign directly to key
                     else:
                         neighbor_solution_data[key] = neighbor_solution_data[key] + np.random.normal(loc=0, scale=1, size=(1))[0] # Corrected line
@@ -1903,7 +1842,6 @@ def rs(rs_queue):
     plt.title('Sum of Best Fitness Values Across Generations(RA)')
     plt.xlabel('Generation Number')
     plt.ylabel('Sum of Best Fitness Values')
-    # plt.xticks(generation_indices)
     plt.show()
     rs_queue.put(sum_fitness_per_generation_RA)
 
@@ -1946,23 +1884,19 @@ if __name__ == "__main__":
     sum_fitness_per_generation_rs  = rs_queue.get()
 
     data_dict = {
-        "Generation_HA": list(range(1, len(sum_fitness_per_generation_hc_irs_ra) + 1)) if sum_fitness_per_generation_hc_irs_ra else [], # Assuming generation number starts from 1
+        "Generation": list(range(1, len(sum_fitness_per_generation_hc_irs_ra) + 1)) if sum_fitness_per_generation_hc_irs_ra else [], # Assuming generation number starts from 1
         "Fitness_Sum_HC_IRS_RA": sum_fitness_per_generation_hc_irs_ra,
         "Fitness_Sum_HC_IRS": sum_fitness_per_generation_hc_irs,
-        "Fitness_Sum_IRS_RA": sum_fitness_per_generation_irs_ra,
-        "Fitness_Sum_IRS": sum_fitness_per_generation_irs,
+        "Fitness_Sum_GA_IRS_RA": sum_fitness_per_generation_irs_ra,
+        "Fitness_Sum_GA_IRS": sum_fitness_per_generation_irs,
         "Fitness_Sum_RS": sum_fitness_per_generation_rs,
     }
 
-    csv_file_path_pandas = "fitness_summary_pandas.csv"
+    csv_file_path_pandas = "fitness_summary_Generation(25 PS).csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)
 
-    # Save the DataFrame to a CSV file
-    df.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
-
-    print("hhe")
     num_generation=30
     print("\n--- Energy vs Generation ---")
     generation_indices = list(range(1, num_generation + 1))
@@ -1976,24 +1910,30 @@ if __name__ == "__main__":
     plt.xlabel('Generation')
     plt.ylabel('Energy')
     plt.legend()
-    # plt.xticks(generation_indices)
-    plt.savefig("Energy vs Generation(HC vs GA vs RS).pdf", format="pdf", bbox_inches="tight", dpi=800)
+    plt.savefig("Energy vs Generation(25 PS).pdf", format="pdf", bbox_inches="tight", dpi=800)
     plt.show()
 
+    min_energy_GA_IRS = min(sum_fitness_per_generation_irs)
+    min_energy_GA_IRS_RA = min(sum_fitness_per_generation_irs_ra)
+    min_energy_HC_IRS = min(sum_fitness_per_generation_hc_irs)
+    min_energy_HC_IRS_RA = min(sum_fitness_per_generation_hc_irs_ra)
+    min_energy_RS = min(sum_fitness_per_generation_rs)
 
-    # # Calculate Percentage Improvement
-    # # Find the minimum energy for each algorithm
-    # min_energy_GA = min(sum_fitness_per_generation_hc_irs_ra)
-    # min_energy_HA = min(sum_fitness_per_generation_hc_irs)
-    # min_energy_RS = min(sum_fitness_per_generation_rs)
+    # Calculate percentage improvement over Random Search
+    improvement_GA_IRS_vs_GA_IRS_RA = ((min_energy_GA_IRS_RA - min_energy_GA_IRS) / min_energy_GA_IRS_RA) * 100
+    improvement_GA_IRS_vs_HC_IRS  = ((min_energy_HC_IRS - min_energy_GA_IRS) / min_energy_HC_IRS) * 100
+    improvement_GA_IRS_vs_HC_IRS_RA  = ((min_energy_HC_IRS_RA - min_energy_GA_IRS) / min_energy_HC_IRS_RA) * 100
+    improvement_GA_IRS_vs_RS  = ((min_energy_RS - min_energy_GA_IRS) / min_energy_RS) * 100
+    
+    
+    new_row = {"Generation":"Fitness Improvement(%)", "Fitness_Sum_HC_IRS_RA":improvement_GA_IRS_vs_HC_IRS_RA, "Fitness_Sum_HC_IRS":improvement_GA_IRS_vs_HC_IRS, "Fitness_Sum_GA_IRS_RA":improvement_GA_IRS_vs_GA_IRS_RA, "Fitness_Sum_GA_IRS":0, "Fitness_Sum_RS":improvement_GA_IRS_vs_RS}
+    new_row_df = pd.DataFrame([new_row])
+    df2 = pd.concat([df, new_row_df], ignore_index=True)
+    # Save the DataFrame to a CSV file
+    df2.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
 
-    # # Calculate percentage improvement over Random Search
-    # improvement_GA_percentage = ((min_energy_RS - min_energy_GA) / min_energy_RS) * 100
-    # improvement_HA_percentage = ((min_energy_RS - min_energy_HA) / min_energy_RS) * 100
-
-    # # Print the percentage improvement
-    # print("\n--- Percentage Improvement over Random Search (RS) ---")
-    # print(f"Genetic Algorithm (C2-GA) is better than Random Search by: {improvement_GA_percentage:.2f}%")
-    # print(f"Hill Climbing Algorithm (HC-A) is better than Random Search by: {improvement_HA_percentage:.2f}%")
-    # print("-------------------------------------------------------")
-        
+    #Print the calculated improvement values with descriptive labels
+    print(f"Improvement of GA_IRS vs GA_IRS_RA: {improvement_GA_IRS_vs_GA_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS: {improvement_GA_IRS_vs_HC_IRS:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS_RA: {improvement_GA_IRS_vs_HC_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs RS: {improvement_GA_IRS_vs_RS:.2f}%")
