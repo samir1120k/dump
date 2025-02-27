@@ -15,6 +15,7 @@ uav = pd.read_csv(r'UAV_data.csv')
 people = pd.read_csv(r'people_data.csv')
 IRS=pd.read_csv(r'IRS_data.csv')
 p_km_UP=pd.read_csv(r'P_km_up.csv')
+t_har1=pd.read_csv(r'T_har.csv')
 
 Angle_df=pd.read_csv(r'Angle.csv') # number of IRS is 500 store in each column
 h_l_km_df=pd.read_csv(r'h_l_km.csv') # number of IRS is 500 store in each column
@@ -33,7 +34,7 @@ f_km1=pd.read_csv(r'f_km.csv')
 Wl_value = 35.28
 H_value= 20
 P_m_har = p_har1['0']
-T_m_har = base['T_m_har']
+T_m_har = t_har1['0']
 P_m_down = p_down1['0']
 f_km=f_km1['0']
 V_lm_vfly = uav['V_lm_vfly']
@@ -168,7 +169,7 @@ num_bs = 5
 num_irs_ele=50
 num_generation = 10 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
-population_size = 50 # Population size for GA
+population_size =50 # Population size for GA
 S=50
 
 # Define keys that should be subjected to crossover and mutation (numerical parameters)
@@ -1556,11 +1557,11 @@ def RS(p_max):
                 for key in numerical_keys_for_crossover: # Perturb each key for the current neighbor
                     if key in ['Angle1_row','Angle_row','Angle2_row']:
                         neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
-                    elif key in [ 'T_m_har_value','f_km_value']:
+                    elif key in [ 'f_km_value']:
                         neighbor_solution_data[key] = random.uniform(0, 1) # Corrected: Assign directly to key
                     elif key in ['V_lm_vfly_value', 'V_lm_hfly_value']:
                         neighbor_solution_data[key] = random.uniform(0, 100) # Corrected: Assign directly to key
-                    elif key in ['P_km_up_value','P_m_down_value', 'P_m_har_value']:
+                    elif key in ['P_km_up_value','P_m_down_value', 'P_m_har_value','T_m_har_value']:
                         neighbor_solution_data[key] = random.uniform(0, 10) # Corrected: Assign directly to key
                     else:
                         neighbor_solution_data[key] = neighbor_solution_data[key] + np.random.normal(loc=0, scale=1, size=(1))[0] # Corrected line
@@ -1702,11 +1703,11 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
     plt.savefig("Energy vs Power.pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
     plt.show()
 
-    min_energy_GA_IRS = min(fitness_sums_GA_IRS)
-    min_energy_GA_IRS_RA = min(fitness_sums_GA_IRS_RA)
-    min_energy_HC_IRS = min(fitness_sums_HC_IRS)
-    min_energy_HC_IRS_RA = min(fitness_sums_HC_IRS_RA)
-    min_energy_RS = min(fitness_sums_RS)
+    min_energy_GA_IRS = sum(fitness_sums_GA_IRS)
+    min_energy_GA_IRS_RA = sum(fitness_sums_GA_IRS_RA)
+    min_energy_HC_IRS = sum(fitness_sums_HC_IRS)
+    min_energy_HC_IRS_RA = sum(fitness_sums_HC_IRS_RA)
+    min_energy_RS = sum(fitness_sums_RS)
 
     # Calculate percentage improvement over Random Search
     improvement_GA_IRS_vs_GA_IRS_RA = ((min_energy_GA_IRS_RA - min_energy_GA_IRS) / min_energy_GA_IRS_RA) * 100

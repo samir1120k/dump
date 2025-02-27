@@ -11,6 +11,7 @@ import multiprocessing
 base = pd.read_csv(r'BS_data.csv')
 p_har1=pd.read_csv(r'p_har.csv')
 p_down1=pd.read_csv(r'p_down.csv')
+t_har1=pd.read_csv(r'T_har.csv')
 uav = pd.read_csv(r'UAV_data.csv')
 people = pd.read_csv(r'people_data.csv')
 IRS=pd.read_csv(r'IRS_data.csv')
@@ -33,7 +34,7 @@ f_km1=pd.read_csv(r'f_km.csv')
 Wl_value = 35.28
 H_value= 20
 P_m_har = p_har1['0']
-T_m_har = base['T_m_har']
+T_m_har = t_har1['0']
 P_m_down = p_down1['0']
 f_km=f_km1['0']
 V_lm_vfly = uav['V_lm_vfly']
@@ -166,9 +167,10 @@ def E_kml_har(P_m_har,T_m_har,h_km_har):
 
 num_bs = 5
 # num_irs_ele=50
-num_generation = 10 # Number of generations, increased for GA to evolve
+num_generation = 1 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
 population_size = 50 # Population size for GA
+S=50
 
 # Define keys that should be subjected to crossover and mutation (numerical parameters)
 numerical_keys_for_crossover = [
@@ -234,7 +236,7 @@ def GA_IRS(num_irs_ele): # Define function to process each p_max value
             P_l_hov_value = P_l_hov(Wl_value, p_l_b, Nr, Ar, Bh)
 
             # Initialize population for the Genetic Algorithm
-            for i in range(population_size):
+            for i in range(S):
                 f_km_value = f_km_bs[i % len(f_km_bs)]
                 P_km_up_value = P_km_up_bs[i % len(P_km_up_bs)]
 
@@ -292,7 +294,7 @@ def GA_IRS(num_irs_ele): # Define function to process each p_max value
             for j in range(num_generation):
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0, len(valid_indices), 2): # Loop through population with step of 2
+                for x in range(0, S, 2): # Loop through population with step of 2
                     if x + 1 >= len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
@@ -397,7 +399,7 @@ def GA_IRS(num_irs_ele): # Define function to process each p_max value
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:population_size]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -546,7 +548,7 @@ def GA_IRS_RA(num_irs_ele): # Define function to process each p_max value
             P_l_hov_value = P_l_hov(Wl_value, p_l_b, Nr, Ar, Bh)
 
             # Initialize population for the Genetic Algorithm
-            for i in range(population_size):
+            for i in range(S):
                 f_km_value = f_km_bs[i % len(f_km_bs)]
                 P_km_up_value = P_km_up_bs[i % len(P_km_up_bs)]
 
@@ -604,7 +606,7 @@ def GA_IRS_RA(num_irs_ele): # Define function to process each p_max value
             for j in range(num_generation):
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0, len(valid_indices), 2): # Loop through population with step of 2
+                for x in range(0, S, 2): # Loop through population with step of 2
                     if x + 1 >= len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
@@ -708,7 +710,7 @@ def GA_IRS_RA(num_irs_ele): # Define function to process each p_max value
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:population_size]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -1430,19 +1432,19 @@ def RS(num_irs_ele):
 
             # Initialize initial solution for Hill Climbing - using first from 'population initialization' of GA
             initial_solution_data = {}
-            i=0 # Using first index for initialization
-            f_km_value = f_km_bs[i] # Use BS-specific f_km
-            P_km_up_value = P_km_up_bs[i] # Use BS-specific P_km_up
+            # i=0 # Using first index for initialization
+            f_km_value = f_km_bs[i % len(f_km_bs)]
+            P_km_up_value = P_km_up_bs[i % len(P_km_up_bs)]
 
-            Angle_row = Angle_df.iloc[i, :] # Use BS-specific Angle_df
-            h_l_m_row = h_l_m_df.iloc[k, :] # Use BS-specific h_l_m_df
-            h_l_km_row = h_l_km_df_bs.iloc[i, :] # Use BS-specific h_l_km_df
-            Angle1_row = Angle_UP_df.iloc[i, :] # Use BS-specific Angle_UP_df
-            g_l_m_row = g_l_m_df.iloc[k, :] # Use BS-specific g_l_m_df
-            g_l_km_row = g_l_km_df_bs.iloc[i, :] # Use BS-specific g_l_km_df
-            Angle2_row = Angle_har_df.iloc[i, :] # Use BS-specific Angle_har_df
-            f_l_m_row = f_l_m_df.iloc[k, :] # Use BS-specific f_l_m_df
-            f_l_km_row = f_l_km_df_bs.iloc[i, :] # Use BS-specific f_l_km_df
+            Angle_row = Angle_df.iloc[unique_row_indices[i] if i < len(unique_row_indices) else unique_row_indices[0], :]
+            h_l_m_row = h_l_m_df.iloc[k, :]
+            h_l_km_row = h_l_km_df_bs.iloc[i % len(h_l_km_df_bs), :]
+            Angle1_row = Angle_UP_df.iloc[unique_row_indices[i]  if i < len(unique_row_indices) else unique_row_indices[0], :]
+            g_l_m_row = g_l_m_df.iloc[k, :]
+            g_l_km_row = g_l_km_df_bs.iloc[i % len(g_l_km_df_bs), :]
+            Angle2_row = Angle_har_df.iloc[unique_row_indices[i]  if i < len(unique_row_indices) else unique_row_indices[0], :]
+            f_l_m_row = f_l_m_df.iloc[k, :]
+            f_l_km_row = f_l_km_df_bs.iloc[i % len(f_l_km_df_bs), :]
 
 
 
@@ -1568,11 +1570,11 @@ def RS(num_irs_ele):
                 for key in numerical_keys_for_crossover: # Perturb each key for the current neighbor
                     if key in ['Angle1_row','Angle_row','Angle2_row']:
                         neighbor_solution_data[key] = pd.Series([random.uniform(1, 180) for _ in range(len(Angle_df.columns))], index=Angle_df.columns)
-                    elif key in ['P_m_down_value', 'P_m_har_value', 'T_m_har_value','f_km_value']:
+                    elif key in ['f_km_value']:
                         neighbor_solution_data[key] = random.uniform(0, 1) # Corrected: Assign directly to key
                     elif key in ['V_lm_vfly_value', 'V_lm_hfly_value']:
                         neighbor_solution_data[key] = random.uniform(0, 100) # Corrected: Assign directly to key
-                    elif key in ['P_km_up_value']:
+                    elif key in ['P_km_up_value','P_m_down_value', 'P_m_har_value', 'T_m_har_value']:
                         neighbor_solution_data[key] = random.uniform(0, 10) # Corrected: Assign directly to key
                     else:
                         neighbor_solution_data[key] = neighbor_solution_data[key] + np.random.normal(loc=0, scale=1, size=(1))[0] # Corrected line
@@ -1685,22 +1687,18 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
         
 
     data_dict = {
-        "Generation_HA": list(range(1, len(fitness_sums_GA_IRS) + 1)) if fitness_sums_GA_IRS else [], # Assuming generation number starts from 1
-        "fitness_sums_HC_IRS_RA": fitness_sums_HC_IRS_RA,
-        "fitness_sums_HC_IRS": fitness_sums_HC_IRS,
-        "fitness_sums_GA_IRS_RA": fitness_sums_GA_IRS_RA,
-        "fitness_sums_GA_IRS": fitness_sums_GA_IRS,
-        "fitness_sums_RS": fitness_sums_RS,
+        "IRS_Elements": num_irs, # Assuming generation number starts from 1
+        "Fitness_Sum_HC_IRS_RA": fitness_sums_HC_IRS_RA,
+        "Fitness_Sum_HC_IRS": fitness_sums_HC_IRS,
+        "Fitness_Sum_GA_IRS_RA": fitness_sums_GA_IRS_RA,
+        "Fitness_Sum_GA_IRS": fitness_sums_GA_IRS,
+        "Fitness_Sum_RS": fitness_sums_RS,
     }
 
-    csv_file_path_pandas = "fitness_summary IRS Element .csv"
+    csv_file_path_pandas = "fitness_summary IRS Element(try).csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)
-
-    # Save the DataFrame to a CSV file
-    df.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
-
 
     plt.figure(figsize=(12, 7)) 
     num_irs =np.arange(10,51,5)
@@ -1713,7 +1711,30 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
     plt.xlabel('IRS Element',size=20)
     plt.ylabel('Energy',size=22)
     plt.legend()
-    plt.savefig("Energy vs IRS Element.pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
+    plt.savefig("Energy vs IRS Element(try).pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
     plt.show()
 
+    min_energy_GA_IRS = sum(fitness_sums_GA_IRS)
+    min_energy_GA_IRS_RA = sum(fitness_sums_GA_IRS_RA)
+    min_energy_HC_IRS = sum(fitness_sums_HC_IRS)
+    min_energy_HC_IRS_RA = sum(fitness_sums_HC_IRS_RA)
+    min_energy_RS = sum(fitness_sums_RS)
+
+    # Calculate percentage improvement over Random Search
+    improvement_GA_IRS_vs_GA_IRS_RA = ((min_energy_GA_IRS_RA - min_energy_GA_IRS) / min_energy_GA_IRS_RA) * 100
+    improvement_GA_IRS_vs_HC_IRS  = ((min_energy_HC_IRS - min_energy_GA_IRS) / min_energy_HC_IRS) * 100
+    improvement_GA_IRS_vs_HC_IRS_RA  = ((min_energy_HC_IRS_RA - min_energy_GA_IRS) / min_energy_HC_IRS_RA) * 100
+    improvement_GA_IRS_vs_RS  = ((min_energy_RS - min_energy_GA_IRS) / min_energy_RS) * 100
     
+    
+    new_row = {"IRS_Elements":"Fitness Improvement(%)", "Fitness_Sum_HC_IRS_RA":improvement_GA_IRS_vs_HC_IRS_RA, "Fitness_Sum_HC_IRS":improvement_GA_IRS_vs_HC_IRS, "Fitness_Sum_GA_IRS_RA":improvement_GA_IRS_vs_GA_IRS_RA, "Fitness_Sum_GA_IRS":0, "Fitness_Sum_RS":improvement_GA_IRS_vs_RS}
+    new_row_df = pd.DataFrame([new_row])
+    df2 = pd.concat([df, new_row_df], ignore_index=True)
+    # Save the DataFrame to a CSV file
+    df2.to_csv(csv_file_path_pandas, index=False) # index=False to prevent writing row indices to CSV
+
+    #Print the calculated improvement values with descriptive labels
+    print(f"Improvement of GA_IRS vs GA_IRS_RA: {improvement_GA_IRS_vs_GA_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS: {improvement_GA_IRS_vs_HC_IRS:.2f}%")
+    print(f"Improvement of GA_IRS vs HC_IRS_RA: {improvement_GA_IRS_vs_HC_IRS_RA:.2f}%")
+    print(f"Improvement of GA_IRS vs RS: {improvement_GA_IRS_vs_RS:.2f}%")

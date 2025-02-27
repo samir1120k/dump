@@ -13,6 +13,9 @@ uav = pd.read_csv(r'UAV_data.csv')
 people = pd.read_csv(r'people_data.csv')
 IRS=pd.read_csv(r'IRS_data.csv')
 p_km_UP=pd.read_csv(r'P_km_up.csv')
+p_har1=pd.read_csv(r'p_har.csv')
+p_down1=pd.read_csv(r'p_down.csv')
+t_har1=pd.read_csv(r'T_har.csv')
 
 Angle_df=pd.read_csv(r'Angle.csv') # number of IRS is 500 store in each column
 h_l_km_df=pd.read_csv(r'h_l_km.csv') # number of IRS is 500 store in each column
@@ -30,9 +33,9 @@ f_km1=pd.read_csv(r'f_km.csv')
 # Constants
 Wl_value = 35.28
 H_value= 20
-P_m_har = base['P_m_har']
-T_m_har = base['T_m_har']
-P_m_down = base['P_m_down']
+P_m_har = p_har1['0']
+T_m_har = t_har1['0']
+P_m_down = p_down1['0']
 f_km=f_km1['0']
 V_lm_vfly = uav['V_lm_vfly']
 V_lm_hfly = uav['V_lm_hfly']
@@ -61,7 +64,6 @@ eta=10
 kappa=0.5
 num_population=50
 Bh = (1 - 2.2558 * pow(10, -5) *H_value)**4.2577
-# Bh = max(1, Bh)
 p_l_b = (delta / 8) * Bh * Ar * s * pow(V_tip, 3)
 
 # Determine the maximum possible rows based on the smallest dataframe size
@@ -166,7 +168,8 @@ num_bs = 5
 num_irs_ele=50
 num_generation = 10 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
-population_size = 50 # Population size for GA
+population_size = 25 # Population size for GA
+S=50
 
 # Define keys that should be subjected to crossover and mutation (numerical parameters)
 numerical_keys_for_crossover = [
@@ -232,7 +235,7 @@ def GA_IRS(Mutation): # Define function to process each p_max value
             P_l_hov_value = P_l_hov(Wl_value, p_l_b, Nr, Ar, Bh)
 
             # Corrected loop range to use valid_indices length
-            for i in range(len(valid_indices)): # Using length of valid_indices
+            for i in range(S): # Using length of valid_indices
                 f_km_value = f_km_bs[random.randint(0,population_size)] # Use BS-specific f_km
                 P_km_up_value = P_km_up_bs[random.randint(0,population_size)] # Use BS-specific P_km_up
 
@@ -289,7 +292,7 @@ def GA_IRS(Mutation): # Define function to process each p_max value
             for j in range(num_generation):
                 child_population = []
                 # Corrected loop range to use valid_indices length
-                for x in range(0, len(valid_indices), 2): # Loop through population with step of 2
+                for x in range(0, S, 2): # Loop through population with step of 2
                     if x + 1 >= len(valid_indices): # Check if i+1 is within bounds, if not break to avoid error in accessing population[i+1]
                         break
                     # Crossover
@@ -394,7 +397,7 @@ def GA_IRS(Mutation): # Define function to process each p_max value
                 # Create new population
                 new_population = population + child_population
                 new_population = sorted(new_population, key=lambda x: x['fitness'])
-                population = new_population[:population_size]
+                population = new_population[:S]
                 generations_data.append(population[0].copy())
                 # print(population[0])
 
@@ -486,10 +489,6 @@ def GA_IRS(Mutation): # Define function to process each p_max value
 
     return sum_fitness_current_p_max
 
-
-
-
-
 if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Windows
     Mutation_values = np.arange(1, 6,1) # P_max values from 1 to 11
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
@@ -502,7 +501,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
         "fitness_sums_GA_IRS": fitness_sums_GA_IRS,   
     }
 
-    csv_file_path_pandas = "fitness_summary Mutation.csv"
+    csv_file_path_pandas = "fitness_summary varience(25 PS).csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)
@@ -518,5 +517,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
     plt.xlabel('Mutation',size=22)
     plt.ylabel('Energy',size=22)
     plt.legend()
-    plt.savefig("Energy vs Mutation.pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
+    plt.savefig("Energy vs Varience(25 PS).pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
     plt.show()
+
+    
