@@ -321,9 +321,9 @@ def GA_IRS(Mutation): # Define function to process each p_max value
                             if key in ['Angle1_row','Angle_row','Angle2_row']: # Handle Angle Series
                                 # child_data[key] = pd.Series(index=Angle_df.columns, dtype='float64') # Initialize empty Series for child
                                 for col in Angle_df.columns: # Iterate through each column (angle direction)
-                                    child_data[key][col] += random.normal(loc=0, scale=1, size=(Mutation))[0]
+                                    child_data[key][col] += random.normal(loc=0, scale=Mutation, size=(1))[0]
                             else:
-                                child_data[key] += random.normal(loc=0, scale=1, size=(Mutation))[0] # Reduced scale for smaller perturbations in HC
+                                child_data[key] += random.normal(loc=0, scale=Mutation, size=(1))[0] # Reduced scale for smaller perturbations in HC
 
                     # Compute child fitness
                     def compute_fitness(data):
@@ -490,7 +490,7 @@ def GA_IRS(Mutation): # Define function to process each p_max value
     return sum_fitness_current_p_max
 
 if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Windows
-    Mutation_values = np.arange(1, 6,1) # P_max values from 1 to 11
+    Mutation_values = np.arange(0.1,1.1,0.1) # P_max values from 1 to 11
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         fitness_sums_GA_IRS = pool.map(GA_IRS, Mutation_values)
 
@@ -511,7 +511,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
 
 
     plt.figure(figsize=(12, 7)) 
-    Mutation_values =np.arange(1, 6, 1)
+    Mutation_values =np.arange(0.1,1.1,0.1)
     plt.rcParams["font.size"] = "20"
     plt.plot(Mutation_values, fitness_sums_GA_IRS, marker='*', linestyle='dotted',label = "C2G-A_IRS")
     plt.xlabel('Mutation',size=22)

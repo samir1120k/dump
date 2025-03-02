@@ -1913,11 +1913,11 @@ if __name__ == "__main__":
     plt.savefig("Energy vs Generation(25 PS).pdf", format="pdf", bbox_inches="tight", dpi=800)
     plt.show()
 
-    min_energy_GA_IRS = min(sum_fitness_per_generation_irs)
-    min_energy_GA_IRS_RA = min(sum_fitness_per_generation_irs_ra)
-    min_energy_HC_IRS = min(sum_fitness_per_generation_hc_irs)
-    min_energy_HC_IRS_RA = min(sum_fitness_per_generation_hc_irs_ra)
-    min_energy_RS = min(sum_fitness_per_generation_rs)
+    min_energy_GA_IRS = sum(sum_fitness_per_generation_irs)
+    min_energy_GA_IRS_RA = sum(sum_fitness_per_generation_irs_ra)
+    min_energy_HC_IRS = sum(sum_fitness_per_generation_hc_irs)
+    min_energy_HC_IRS_RA = sum(sum_fitness_per_generation_hc_irs_ra)
+    min_energy_RS = sum(sum_fitness_per_generation_rs)
 
     # Calculate percentage improvement over Random Search
     improvement_GA_IRS_vs_GA_IRS_RA = ((min_energy_GA_IRS_RA - min_energy_GA_IRS) / min_energy_GA_IRS_RA) * 100

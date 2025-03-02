@@ -167,9 +167,9 @@ def E_kml_har(P_m_har,T_m_har,h_km_har):
 
 num_bs = 5
 # num_irs_ele=50
-num_generation = 1 # Number of generations, increased for GA to evolve
+num_generation = 10 # Number of generations, increased for GA to evolve
 num_uav_irs = 8
-population_size = 50 # Population size for GA
+population_size = 100 # Population size for GA
 S=50
 
 # Define keys that should be subjected to crossover and mutation (numerical parameters)
@@ -1695,7 +1695,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
         "Fitness_Sum_RS": fitness_sums_RS,
     }
 
-    csv_file_path_pandas = "fitness_summary IRS Element(try).csv"
+    csv_file_path_pandas = "fitness_summary IRS Element(try 100).csv"
 
     # Create a Pandas DataFrame from the dictionary
     df = pd.DataFrame(data_dict)
@@ -1711,7 +1711,7 @@ if __name__ == '__main__': # Add this to prevent issues in multiprocessing on Wi
     plt.xlabel('IRS Element',size=20)
     plt.ylabel('Energy',size=22)
     plt.legend()
-    plt.savefig("Energy vs IRS Element(try).pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
+    plt.savefig("Energy vs IRS Element(try 100).pdf", format="pdf", bbox_inches="tight", dpi=800) # saved with different name
     plt.show()
 
     min_energy_GA_IRS = sum(fitness_sums_GA_IRS)
